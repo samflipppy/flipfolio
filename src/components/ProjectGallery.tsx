@@ -14,6 +14,7 @@ interface Project {
   color: string;
   icon: string;
   liveUrl?: string;
+  youtubeUrl?: string;
   caseStudy: {
     problem: string;
     approach: string;
@@ -26,33 +27,50 @@ const projects: Project[] = [
   {
     id: "matte",
     title: "Matte",
-    subtitle: "A Small Painter OS",
-    description: "A creative tool designed for painters — simple, focused, and built to stay out of the way.",
-    tags: ["Design Tool", "Creative", "Side Project"],
+    subtitle: "Job Management for Painters",
+    description: "An all-in-one operations board for painting businesses — manage jobs from quote to completion with a Kanban workflow, scheduling, and customer tracking.",
+    tags: ["SaaS", "Operations", "Side Project"],
     color: "#A855F7",
     icon: "🎨",
     liveUrl: "https://matte.biz/",
     caseStudy: {
-      problem: "Digital painting tools are bloated with features most painters never use. The creative process needs a focused environment, not a feature war.",
-      approach: "Built a minimal, opinionated painting OS that prioritizes the canvas. Focused on speed, intuitive gestures, and a distraction-free workspace.",
-      outcome: "Working product with a small but passionate user base. Proved that less really is more in creative tooling.",
-      stack: ["React", "Canvas API", "TypeScript"],
+      problem: "Small painting companies juggle quotes, scheduling, crews, and invoicing across spreadsheets, texts, and sticky notes. There's no purpose-built tool for the trade.",
+      approach: "Built a Kanban-style job board with columns for New, Quoted, Scheduled, and In Progress. Added customer management, job details, and a clean UI that painters can actually use on-site.",
+      outcome: "Working product at matte.biz with real users. Validates that vertical SaaS for trades can be simple, focused, and immediately useful.",
+      stack: ["Next.js", "TypeScript", "Supabase", "Tailwind CSS"],
     },
   },
   {
     id: "ontheclockmock",
     title: "OnTheClockMock",
-    subtitle: "NFL Mock Draft Tool",
-    description: "A real-time mock draft simulator that lets you play GM. Make picks, trade up, and see how your draft plays out.",
-    tags: ["Sports", "Interactive", "Side Project"],
+    subtitle: "NFL Mock Draft Simulator",
+    description: "A real-time mock draft simulator that lets you play GM — plus AI-generated YouTube Shorts of NFL prospects with Whisper-powered voiceovers.",
+    tags: ["Sports", "AI Content", "Side Project"],
     color: "#0EA5E9",
     icon: "🏈",
     liveUrl: "https://ontheclock.xyz/",
+    youtubeUrl: "https://www.youtube.com/@nfl.prospect.content",
     caseStudy: {
-      problem: "Existing mock draft tools are static lists. Real drafts are dynamic — trades happen, boards shift, and you need to react in real time.",
-      approach: "Built an interactive draft simulator with real-time pick logic, trade mechanics, and team need analysis. Focused on making it feel like draft night.",
-      outcome: "Engaging tool that captures the drama of draft day. Users can run multiple scenarios and share results.",
-      stack: ["Next.js", "TypeScript", "Real-time Logic"],
+      problem: "Existing mock draft tools are static lists. Real drafts are dynamic — trades happen, boards shift, and fans want more engaging content than text-based rankings.",
+      approach: "Built an interactive draft simulator with real-time pick logic, trade mechanics, and team need analysis. Then extended the platform with an AI content pipeline that generates YouTube Shorts of NFL draft prospects, using OpenAI Whisper for voiceover narration.",
+      outcome: "Engaging simulator that captures draft-day drama, plus a growing YouTube channel with AI-generated prospect content. Demonstrates both product thinking and AI content automation.",
+      stack: ["Next.js", "TypeScript", "Python", "Whisper", "AI/ML"],
+    },
+  },
+  {
+    id: "clipppy",
+    title: "Clipppy",
+    subtitle: "AI Clip Automation for Streamers",
+    description: "An AI-powered tool that listens to Twitch streams in real time, identifies viral moments, and automatically clips, edits, and posts them.",
+    tags: ["AI", "Automation", "Creator Tools"],
+    color: "#EF4444",
+    icon: "✂️",
+    youtubeUrl: "https://www.youtube.com/@average_coder",
+    caseStudy: {
+      problem: "Twitch streamers miss their best moments. Manually clipping, editing, and posting content is time-consuming, and the window for virality is short.",
+      approach: "Built a pipeline that monitors live streams using speech-to-text and NLP to detect high-energy, funny, or notable moments. Automatically clips the segment, edits it for vertical format, and posts to social platforms.",
+      outcome: "Working automation tool that turns hours of live content into shareable clips without manual effort. Demonstrates real-world AI pipeline design — from audio processing to content delivery.",
+      stack: ["Python", "Speech-to-Text", "NLP", "LLMs", "FFmpeg"],
     },
   },
   {
@@ -151,6 +169,20 @@ function CreativeProjectCard({ project, index }: { project: Project; index: numb
                   Visit Live
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
+              )}
+              {project.youtubeUrl && (
+                <a
+                  href={project.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white bg-red-600 transition-all hover:brightness-110"
+                >
+                  YouTube
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                   </svg>
                 </a>
               )}
@@ -277,6 +309,20 @@ function CorporateProjectRow({ project }: { project: Project }) {
                   View Live
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
+              )}
+              {project.youtubeUrl && (
+                <a
+                  href={project.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:underline"
+                >
+                  YouTube
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                   </svg>
                 </a>
               )}

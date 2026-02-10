@@ -14,7 +14,7 @@ const SUGGESTED_QUESTIONS = [
   "What's Sam's experience with Azure?",
   "Why should we hire Sam?",
   "What side projects has Sam built?",
-  "Tell me about FleetConnex",
+  "Tell me about Clipppy",
   "How does this chat work?",
 ];
 
@@ -23,9 +23,10 @@ const SYSTEM_PROMPT = `You are Sam Filipiak's AI portfolio assistant. You have d
 CONTEXT:
 - Senior Software Engineer, 7+ years, Cleveland OH
 - Trimble Inc (2019-2025): Owned FleetConnex (5M+ daily messages), contributed to FleetHub
-- Side projects: Matte (painter OS), OnTheClockMock (NFL mock draft), Lock In (fitness app)
+- Side projects: Matte (job management for painters), OnTheClockMock (NFL mock draft + AI YouTube Shorts), Clipppy (AI clip automation for Twitch streamers), Lock In (fitness app)
+- YouTube channels: @nfl.prospect.content (AI-generated NFL prospect Shorts using Whisper), @average_coder (Clipppy dev content)
 - Co-founded Lake Effect Labs (micro software agency)
-- Skills: C#/.NET, Azure, TypeScript, React/Next.js, Python, LLMs
+- Skills: C#/.NET, Azure, TypeScript, React/Next.js, Python, LLMs, Whisper, NLP
 - Education: JCU — BS CompSci, BA Sociology, Associates Data Science
 - Crypto background since 2017, smart contract experience
 
@@ -39,11 +40,11 @@ const STUBBED_RESPONSES: Record<string, string> = {
   default: "Great question! Sam is a product-focused senior software engineer with 7+ years of experience. He's built enterprise platforms processing millions of daily messages, shipped multiple side projects, and brings a rare combination of deep technical skill and product ownership. What specifically would you like to know?",
   azure: "Sam has deep Azure expertise from 6+ years at Trimble. He's architected and maintained systems using Azure Functions, Logic Apps, Service Bus, Table/Blob Storage, VMs, App Insights, and Cosmos DB. He managed the entire Azure infrastructure for FleetConnex solo — including cost optimization that saved significant budget, major platform upgrades, and monitoring dashboards. The platform processed 5M+ messages daily with 99.9%+ uptime.",
   hire: "Here's the honest case for Sam: He's not just an engineer — he's a product owner who happens to code. At Trimble, he became the sole developer, PM, customer support, and incident responder for a mission-critical platform. That means he can gather requirements, architect solutions, ship code, handle production incidents, and talk to customers — all in the same day. He's also shipped 5+ side projects because he genuinely loves building. That builder's mentality is hard to hire for.",
-  projects: "Sam's actively shipping: Matte (matte.biz) — a minimal painter OS focused on the creative process. OnTheClockMock (ontheclock.xyz) — a live NFL mock draft simulator with real-time pick logic and trade mechanics. Lock In — a React Native fitness app using fantasy-football-style H2H matchups. He also built Clipppy — a Python pipeline that auto-crops and captions video clips using AI. All through Lake Effect Labs, the micro agency he co-founded.",
+  projects: "Sam's actively shipping: Matte (matte.biz) — job management software for painting businesses with a Kanban workflow, scheduling, and customer tracking. OnTheClockMock (ontheclock.xyz) — an NFL mock draft simulator plus an AI content pipeline that generates YouTube Shorts of draft prospects using Whisper for voiceovers (@nfl.prospect.content). Clipppy — an AI-powered tool that monitors Twitch streams, auto-detects viral moments, clips/edits them, and posts to social platforms (@average_coder on YouTube). Lock In — a React Native fitness app with fantasy-football-style H2H matchups. All through Lake Effect Labs, the micro agency he co-founded.",
   fleetconnex: "FleetConnex was Sam's proving ground. It started as a cloud-based telematics integration platform at Trimble. Over time, Sam became its sole owner — writing code, managing the Azure infrastructure, doing sprint planning, handling customer escalations, and running migrations. At peak, it processed 5M+ messages per day in a 24/7 production environment for enterprise trucking companies. When something broke at 2am, Sam was the one on call. That end-to-end ownership is what defines him.",
   product: "Sam's product instincts come from necessity. When you're the sole owner of a mission-critical platform, you learn fast. He developed a repeatable loop: incident triggers RCA, RCA feeds the backlog, backlog gets prioritized via RICE, smallest viable fix ships first, then hardening follows. He facilitates trade-off calls with engineering and QA, writes specs, and runs customer feedback loops.",
   architecture: "This chat demonstrates how Sam thinks about AI integration. The architecture: a React component with streaming text simulation, conversation state, and suggested questions on the frontend. The system prompt injects Sam's full background as context. In production, this connects to a Next.js API route using the Anthropic SDK, streaming responses via Server-Sent Events. This showcases prompt engineering, AI UX design, understanding of RAG patterns, and the ability to ship AI as a product feature.",
-  ai: "Sam uses AI as a force multiplier. He built a media-processing pipeline using speech-to-text, NLP, and LLM classification to identify key moments in video. He uses agentic dev tools (Claude Code, Cursor) daily for architecture and rapid prototyping. This chat feature itself demonstrates prompt engineering, context injection, and AI-powered UX design. He's not just an AI user — he's building AI into products.",
+  ai: "Sam uses AI as a force multiplier across multiple projects. Clipppy is an AI pipeline that monitors Twitch streams in real time, uses speech-to-text and NLP to detect viral moments, then auto-clips, edits, and posts them. For OnTheClockMock, he built an AI content pipeline that generates YouTube Shorts of NFL draft prospects with Whisper-powered voiceovers — check out @nfl.prospect.content. He uses agentic dev tools (Claude Code, Cursor) daily. This chat feature itself demonstrates prompt engineering, context injection, and AI-powered UX design. He's not just an AI user — he's shipping AI as product features.",
 };
 
 function getStubResponse(input: string): string {
@@ -52,6 +53,7 @@ function getStubResponse(input: string): string {
   if (lower.includes("ai") || lower.includes("llm") || lower.includes("machine learning") || lower.includes("gpt") || lower.includes("claude")) return STUBBED_RESPONSES.ai;
   if (lower.includes("azure") || lower.includes("cloud") || lower.includes("infrastructure")) return STUBBED_RESPONSES.azure;
   if (lower.includes("hire") || lower.includes("why") || lower.includes("fit") || lower.includes("should")) return STUBBED_RESPONSES.hire;
+  if (lower.includes("clip") || lower.includes("twitch") || lower.includes("stream") || lower.includes("youtube")) return STUBBED_RESPONSES.ai;
   if (lower.includes("project") || lower.includes("side") || lower.includes("matte") || lower.includes("lock in") || lower.includes("ontheclock")) return STUBBED_RESPONSES.projects;
   if (lower.includes("fleet") || lower.includes("connex") || lower.includes("trimble") || lower.includes("hub")) return STUBBED_RESPONSES.fleetconnex;
   if (lower.includes("product") || lower.includes("own") || lower.includes("pm") || lower.includes("manage")) return STUBBED_RESPONSES.product;
