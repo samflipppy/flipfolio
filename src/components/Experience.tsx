@@ -53,10 +53,58 @@ const experiences = [
 export default function Experience() {
   const { isCreative } = useTheme();
 
+  /* ===== CORPORATE: Traditional resume format ===== */
+  if (!isCreative) {
+    return (
+      <SectionWrapper id="experience" className="py-12 md:py-16">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-text-primary mb-6">Experience</h2>
+          <div className="space-y-8">
+            {experiences.map((exp) => (
+              <div key={exp.company + exp.role} className="pb-6 border-b border-border-default last:border-b-0">
+                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-1">
+                  <h3 className="text-base font-semibold text-text-primary">{exp.role}</h3>
+                  <span className="text-xs font-mono text-text-muted">{exp.period}</span>
+                </div>
+                <p className="text-sm font-medium text-accent-primary mb-2">{exp.company}</p>
+                <p className="text-sm text-text-secondary mb-3">{exp.description}</p>
+                <ul className="space-y-1.5 mb-3">
+                  {exp.highlights.map((h, i) => (
+                    <li key={i} className="text-sm text-text-secondary flex items-start gap-2">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-text-muted shrink-0" />
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap gap-1.5">
+                  {exp.skills.map((s) => (
+                    <span key={s} className="text-xs text-text-muted">{s}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Education */}
+          <div className="mt-8 pt-6 border-t border-border-default">
+            <h2 className="text-2xl font-bold text-text-primary mb-4">Education</h2>
+            <div className="flex flex-col md:flex-row md:items-baseline md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">John Carroll University</p>
+                <p className="text-sm text-text-secondary">B.S. Computer Science | B.A. Sociology | Associate&apos;s in Data Science</p>
+              </div>
+              <span className="text-xs font-mono text-text-muted mt-1 md:mt-0">2015 – 2019</span>
+            </div>
+          </div>
+        </div>
+      </SectionWrapper>
+    );
+  }
+
+  /* ===== CREATIVE: Animated cards ===== */
   return (
     <SectionWrapper id="experience" className="py-24 md:py-32">
       <div className="max-w-4xl mx-auto">
-        {/* Section header */}
         <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
@@ -65,41 +113,30 @@ export default function Experience() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4" style={{ letterSpacing: "var(--letter-spacing-heading)" }}>
-            {isCreative ? (
-              <span className="gradient-text">Where I've Worked</span>
-            ) : (
-              "Professional Experience"
-            )}
+            <span className="gradient-text">Where I&apos;ve Worked</span>
           </h2>
           <p className="text-text-secondary text-lg max-w-xl mx-auto">
-            {isCreative
-              ? "From intern to sole product owner. Each role taught me something different about building things that last."
-              : "A detailed overview of my professional experience and key contributions."}
+            From intern to sole product owner. Each role taught me something different about building things that last.
           </p>
         </motion.div>
 
-        {/* Experience cards */}
         <div className="space-y-8">
           {experiences.map((exp, index) => (
             <motion.div
               key={exp.company + exp.role}
-              className="relative rounded-2xl border border-border-default bg-bg-card p-6 md:p-8 overflow-hidden group"
+              className="relative rounded-2xl border border-border-default bg-bg-card p-6 md:p-8 overflow-hidden"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
-              whileHover={isCreative ? { y: -2 } : {}}
+              whileHover={{ y: -2 }}
             >
-              {/* Current indicator */}
               {exp.current && (
                 <div className="absolute top-0 right-0">
-                  <div className="bg-accent-primary text-white text-xs font-bold px-4 py-1 rounded-bl-xl">
-                    Current
-                  </div>
+                  <div className="bg-accent-primary text-white text-xs font-bold px-4 py-1 rounded-bl-xl">Current</div>
                 </div>
               )}
 
-              {/* Header */}
               <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4 gap-2">
                 <div>
                   <h3 className="text-xl md:text-2xl font-bold text-text-primary">{exp.role}</h3>
@@ -108,10 +145,8 @@ export default function Experience() {
                 <span className="text-sm font-mono text-text-muted whitespace-nowrap">{exp.period}</span>
               </div>
 
-              {/* Description */}
               <p className="text-text-secondary leading-relaxed mb-6">{exp.description}</p>
 
-              {/* Highlights */}
               <div className="space-y-3 mb-6">
                 {exp.highlights.map((highlight, i) => (
                   <motion.div
@@ -128,13 +163,9 @@ export default function Experience() {
                 ))}
               </div>
 
-              {/* Skills */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-border-default">
                 {exp.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="px-3 py-1 text-xs font-mono font-medium rounded-md bg-bg-secondary border border-border-default text-text-muted"
-                  >
+                  <span key={skill} className="px-3 py-1 text-xs font-mono font-medium rounded-md bg-bg-secondary border border-border-default text-text-muted">
                     {skill}
                   </span>
                 ))}
@@ -143,7 +174,6 @@ export default function Experience() {
           ))}
         </div>
 
-        {/* Education */}
         <motion.div
           className="mt-12 rounded-2xl border border-border-default bg-bg-card p-6 md:p-8"
           initial={{ opacity: 0, y: 30 }}
@@ -151,9 +181,7 @@ export default function Experience() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h3 className="text-xl font-bold text-text-primary mb-2">
-            {isCreative ? "🎓 Education" : "Education"}
-          </h3>
+          <h3 className="text-xl font-bold text-text-primary mb-2">Education</h3>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-accent-primary font-semibold">John Carroll University</p>

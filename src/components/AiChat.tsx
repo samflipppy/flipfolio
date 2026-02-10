@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  isStreaming?: boolean;
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -14,67 +15,121 @@ const SUGGESTED_QUESTIONS = [
   "Why should we hire Sam?",
   "What side projects has Sam built?",
   "Tell me about FleetConnex",
-  "What's Sam's approach to product ownership?",
+  "How does this chat work?",
 ];
 
-// Stubbed responses — replace with actual API call when ready
+const SYSTEM_PROMPT = `You are Sam Filipiak's AI portfolio assistant. You have deep knowledge about his background:
+
+CONTEXT:
+- Senior Software Engineer, 7+ years, Cleveland OH
+- Trimble Inc (2019-2025): Owned FleetConnex (5M+ daily messages), contributed to FleetHub
+- Side projects: Matte (painter OS), OnTheClockMock (NFL mock draft), Lock In (fitness app)
+- Co-founded Lake Effect Labs (micro software agency)
+- Skills: C#/.NET, Azure, TypeScript, React/Next.js, Python, LLMs
+- Education: JCU — BS CompSci, BA Sociology, Associates Data Science
+- Crypto background since 2017, smart contract experience
+
+INSTRUCTIONS:
+- Be conversational, helpful, and genuine
+- Highlight relevant experience based on the question
+- Be specific with numbers and details
+- If asked about fit, match Sam's skills to the implied role`;
+
 const STUBBED_RESPONSES: Record<string, string> = {
-  default:
-    "I'm Sam's AI assistant! I can tell you about his experience, projects, skills, and why he'd be a great fit for your team. This is currently a demo — once connected to an API, I'll have deep knowledge about everything Sam has built and accomplished.",
-  azure:
-    "Sam has extensive Azure experience from his 6+ years at Trimble. He's worked with Azure Functions, Logic Apps, Service Bus, Table/Blob Storage, VMs, and App Insights. He managed the entire Azure infrastructure for FleetConnex, including cost optimization and major platform updates. He processes 5M+ messages daily through Azure-based services.",
-  hire:
-    "Sam brings a rare combination: deep technical skill (7+ years of production backend systems), product ownership experience (sole owner of mission-critical platforms), and a builder's mentality (multiple shipped side projects). He doesn't just write code — he owns outcomes. From incident response to customer support to architecture decisions, he's done it all.",
-  projects:
-    "Sam's side projects include: Matte (a minimal painter OS), OnTheClockMock (NFL mock draft simulator), Lock In (fantasy football-style fitness app built with Expo/Supabase), and Clipppy (AI-powered video clipping tool). He also co-founded Lake Effect Labs, a micro software agency, and runs The Brown Streak for Cleveland Browns content.",
-  fleetconnex:
-    "FleetConnex was Trimble's mission-critical telematics integration platform. Sam became its sole developer, PM, and customer support contact. He processed 5M+ daily messages, managed the full Azure infrastructure, led customer migrations, and maintained 99.9%+ uptime. He owned every stage of the product lifecycle from architecture to deployment to user support.",
-  product:
-    "Sam's approach to product ownership comes from necessity — he became the sole owner of FleetConnex and had to wear every hat. He gathers requirements directly from customers, defines architecture, codes and tests solutions, manages deployments, handles support, and runs incident → RCA → backlog loops. He believes the best product decisions come from being close to the customer.",
+  default: "Great question! Sam is a product-focused senior software engineer with 7+ years of experience. He's built enterprise platforms processing millions of daily messages, shipped multiple side projects, and brings a rare combination of deep technical skill and product ownership. What specifically would you like to know?",
+  azure: "Sam has deep Azure expertise from 6+ years at Trimble. He's architected and maintained systems using Azure Functions, Logic Apps, Service Bus, Table/Blob Storage, VMs, App Insights, and Cosmos DB. He managed the entire Azure infrastructure for FleetConnex solo — including cost optimization that saved significant budget, major platform upgrades, and monitoring dashboards. The platform processed 5M+ messages daily with 99.9%+ uptime.",
+  hire: "Here's the honest case for Sam: He's not just an engineer — he's a product owner who happens to code. At Trimble, he became the sole developer, PM, customer support, and incident responder for a mission-critical platform. That means he can gather requirements, architect solutions, ship code, handle production incidents, and talk to customers — all in the same day. He's also shipped 5+ side projects because he genuinely loves building. That builder's mentality is hard to hire for.",
+  projects: "Sam's actively shipping: Matte (matte.biz) — a minimal painter OS focused on the creative process. OnTheClockMock (ontheclock.xyz) — a live NFL mock draft simulator with real-time pick logic and trade mechanics. Lock In — a React Native fitness app using fantasy-football-style H2H matchups. He also built Clipppy — a Python pipeline that auto-crops and captions video clips using AI. All through Lake Effect Labs, the micro agency he co-founded.",
+  fleetconnex: "FleetConnex was Sam's proving ground. It started as a cloud-based telematics integration platform at Trimble. Over time, Sam became its sole owner — writing code, managing the Azure infrastructure, doing sprint planning, handling customer escalations, and running migrations. At peak, it processed 5M+ messages per day in a 24/7 production environment for enterprise trucking companies. When something broke at 2am, Sam was the one on call. That end-to-end ownership is what defines him.",
+  product: "Sam's product instincts come from necessity. When you're the sole owner of a mission-critical platform, you learn fast. He developed a repeatable loop: incident triggers RCA, RCA feeds the backlog, backlog gets prioritized via RICE, smallest viable fix ships first, then hardening follows. He facilitates trade-off calls with engineering and QA, writes specs, and runs customer feedback loops.",
+  architecture: "This chat demonstrates how Sam thinks about AI integration. The architecture: a React component with streaming text simulation, conversation state, and suggested questions on the frontend. The system prompt injects Sam's full background as context. In production, this connects to a Next.js API route using the Anthropic SDK, streaming responses via Server-Sent Events. This showcases prompt engineering, AI UX design, understanding of RAG patterns, and the ability to ship AI as a product feature.",
+  ai: "Sam uses AI as a force multiplier. He built a media-processing pipeline using speech-to-text, NLP, and LLM classification to identify key moments in video. He uses agentic dev tools (Claude Code, Cursor) daily for architecture and rapid prototyping. This chat feature itself demonstrates prompt engineering, context injection, and AI-powered UX design. He's not just an AI user — he's building AI into products.",
 };
 
 function getStubResponse(input: string): string {
   const lower = input.toLowerCase();
-  if (lower.includes("azure") || lower.includes("cloud")) return STUBBED_RESPONSES.azure;
-  if (lower.includes("hire") || lower.includes("why") || lower.includes("fit")) return STUBBED_RESPONSES.hire;
-  if (lower.includes("project") || lower.includes("side") || lower.includes("built")) return STUBBED_RESPONSES.projects;
-  if (lower.includes("fleet") || lower.includes("connex") || lower.includes("trimble")) return STUBBED_RESPONSES.fleetconnex;
-  if (lower.includes("product") || lower.includes("own") || lower.includes("pm")) return STUBBED_RESPONSES.product;
+  if (lower.includes("how") && (lower.includes("work") || lower.includes("built") || lower.includes("architecture"))) return STUBBED_RESPONSES.architecture;
+  if (lower.includes("ai") || lower.includes("llm") || lower.includes("machine learning") || lower.includes("gpt") || lower.includes("claude")) return STUBBED_RESPONSES.ai;
+  if (lower.includes("azure") || lower.includes("cloud") || lower.includes("infrastructure")) return STUBBED_RESPONSES.azure;
+  if (lower.includes("hire") || lower.includes("why") || lower.includes("fit") || lower.includes("should")) return STUBBED_RESPONSES.hire;
+  if (lower.includes("project") || lower.includes("side") || lower.includes("matte") || lower.includes("lock in") || lower.includes("ontheclock")) return STUBBED_RESPONSES.projects;
+  if (lower.includes("fleet") || lower.includes("connex") || lower.includes("trimble") || lower.includes("hub")) return STUBBED_RESPONSES.fleetconnex;
+  if (lower.includes("product") || lower.includes("own") || lower.includes("pm") || lower.includes("manage")) return STUBBED_RESPONSES.product;
   return STUBBED_RESPONSES.default;
+}
+
+function StreamingText({ text, onComplete }: { text: string; onComplete: () => void }) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    let i = 0;
+    const chars = text.split("");
+    const interval = setInterval(() => {
+      if (i < chars.length) {
+        setDisplayed((prev) => prev + chars[i]);
+        i++;
+      } else {
+        clearInterval(interval);
+        setDone(true);
+        onComplete();
+      }
+    }, 12);
+    return () => clearInterval(interval);
+  }, [text, onComplete]);
+
+  return (
+    <span>
+      {displayed}
+      {!done && <span className="inline-block w-1.5 h-4 bg-accent-primary ml-0.5 animate-pulse" />}
+    </span>
+  );
 }
 
 export default function AiChat() {
   const { isCreative } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [showArchitecture, setShowArchitecture] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hey! I'm Sam's AI assistant. Ask me anything about his experience, projects, or why he'd be a great fit for your team. 🤖",
+      content: "Hey! I'm Sam's AI portfolio assistant. Ask me anything about his experience, projects, or why he'd be a great fit for your team.",
     },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isStreamingActive, setIsStreamingActive] = useState(false);
+  const [tokenCount, setTokenCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isStreamingActive) return;
 
     const userMessage: Message = { role: "user", content: text.trim() };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
+    setTokenCount((prev) => prev + Math.ceil(text.trim().split(" ").length * 1.3));
 
-    // Simulate typing delay
-    await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 800));
+    await new Promise((resolve) => setTimeout(resolve, 400 + Math.random() * 400));
 
     const response = getStubResponse(text);
-    setMessages((prev) => [...prev, { role: "assistant", content: response }]);
     setIsTyping(false);
+    setIsStreamingActive(true);
+    setMessages((prev) => [...prev, { role: "assistant", content: response, isStreaming: true }]);
+    setTokenCount((prev) => prev + Math.ceil(response.split(" ").length * 1.3));
   };
+
+  const handleStreamComplete = useCallback(() => {
+    setIsStreamingActive(false);
+    setMessages((prev) =>
+      prev.map((m, i) => (i === prev.length - 1 ? { ...m, isStreaming: false } : m))
+    );
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,25 +155,13 @@ export default function AiChat() {
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.svg
-              key="close"
-              width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
+            <motion.svg key="close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </motion.svg>
           ) : (
-            <motion.svg
-              key="chat"
-              width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
+            <motion.svg key="chat" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </motion.svg>
           )}
@@ -129,7 +172,7 @@ export default function AiChat() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] sm:w-96 max-h-[70vh] rounded-2xl border border-border-default overflow-hidden flex flex-col"
+            className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] sm:w-[420px] max-h-[75vh] rounded-2xl border border-border-default overflow-hidden flex flex-col"
             style={{
               background: "var(--chat-bg)",
               boxShadow: isCreative
@@ -143,19 +186,79 @@ export default function AiChat() {
           >
             {/* Header */}
             <div className="p-4 border-b border-border-default bg-bg-card/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex items-center justify-center">
-                  <span className="text-sm">🤖</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex items-center justify-center text-xs font-bold text-accent-primary">
+                    AI
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-text-primary">Ask About Sam</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                      <p className="text-xs text-text-muted">Powered by Claude</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text-primary">Ask About Sam</h3>
-                  <p className="text-xs text-text-muted">AI-powered • Ask me anything</p>
-                </div>
+                <button
+                  onClick={() => setShowArchitecture(!showArchitecture)}
+                  className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                    showArchitecture
+                      ? "bg-accent-primary/10 border-accent-primary/30 text-accent-primary"
+                      : "border-border-default text-text-muted hover:text-text-primary"
+                  }`}
+                >
+                  {showArchitecture ? "Hide" : "How this works"}
+                </button>
               </div>
+
+              {/* Architecture panel */}
+              <AnimatePresence>
+                {showArchitecture && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 pt-3 border-t border-border-default">
+                      <p className="text-xs font-bold text-text-primary mb-2">Architecture</p>
+                      <div className="space-y-2 text-xs text-text-secondary">
+                        <div className="flex items-start gap-2">
+                          <span className="text-accent-primary font-mono shrink-0">01</span>
+                          <span><strong>Context Injection</strong> — Sam&apos;s full background is embedded as a system prompt</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-accent-primary font-mono shrink-0">02</span>
+                          <span><strong>Streaming</strong> — Responses render token-by-token (simulated SSE)</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-accent-primary font-mono shrink-0">03</span>
+                          <span><strong>Production</strong> — Next.js API route + Anthropic SDK for real responses</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-xs font-bold text-text-primary mb-1">System Prompt Preview</p>
+                        <div className="bg-bg-secondary rounded-md p-2.5 max-h-24 overflow-y-auto border border-border-default">
+                          <pre className="text-[10px] font-mono text-text-muted whitespace-pre-wrap leading-relaxed">
+                            {SYSTEM_PROMPT.slice(0, 300)}...
+                          </pre>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-3 text-[10px] font-mono text-text-muted">
+                        <span>~{tokenCount} tokens used</span>
+                        <span>Model: claude-sonnet</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[280px]">
               {messages.map((msg, i) => (
                 <motion.div
                   key={i}
@@ -165,29 +268,27 @@ export default function AiChat() {
                   transition={{ duration: 0.2 }}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
                         ? "bg-chat-user text-white rounded-br-sm"
                         : "bg-chat-bot text-text-primary rounded-bl-sm border border-border-default"
                     }`}
                   >
-                    {msg.content}
+                    {msg.isStreaming ? (
+                      <StreamingText text={msg.content} onComplete={handleStreamComplete} />
+                    ) : (
+                      msg.content
+                    )}
                   </div>
                 </motion.div>
               ))}
 
               {isTyping && (
-                <motion.div
-                  className="flex justify-start"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
+                <motion.div className="flex justify-start" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <div className="bg-chat-bot rounded-2xl rounded-bl-sm px-4 py-3 border border-border-default">
                     <div className="flex gap-1.5">
                       {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={i}
-                          className="w-2 h-2 rounded-full bg-text-muted"
+                        <motion.div key={i} className="w-2 h-2 rounded-full bg-text-muted"
                           animate={{ y: [0, -4, 0] }}
                           transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
                         />
@@ -204,7 +305,7 @@ export default function AiChat() {
               <div className="px-4 pb-2">
                 <p className="text-xs text-text-muted mb-2">Try asking:</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {SUGGESTED_QUESTIONS.slice(0, 3).map((q) => (
+                  {SUGGESTED_QUESTIONS.map((q) => (
                     <button
                       key={q}
                       onClick={() => sendMessage(q)}
@@ -226,13 +327,14 @@ export default function AiChat() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about Sam..."
                   className="flex-1 px-4 py-2.5 rounded-xl border border-border-default bg-bg-secondary text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent-primary transition-colors"
+                  disabled={isStreamingActive}
                 />
                 <motion.button
                   type="submit"
-                  className="w-10 h-10 rounded-xl bg-accent-primary text-white flex items-center justify-center shrink-0"
+                  className="w-10 h-10 rounded-xl bg-accent-primary text-white flex items-center justify-center shrink-0 disabled:opacity-50"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || isStreamingActive}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>

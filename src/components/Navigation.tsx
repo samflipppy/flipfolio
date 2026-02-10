@@ -7,6 +7,7 @@ import ModeToggle from "./ModeToggle";
 
 const navLinks = [
   { label: "Work", href: "#work" },
+  { label: "Skills", href: "#skills" },
   { label: "Experience", href: "#experience" },
   { label: "Vision Board", href: "#vision" },
   { label: "Contact", href: "#contact" },
