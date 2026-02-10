@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
 
+type Provider = "anthropic" | "openai";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -18,33 +20,26 @@ const SUGGESTED_QUESTIONS = [
   "How does this chat work?",
 ];
 
-const SYSTEM_PROMPT = `You are Sam Filipiak's AI portfolio assistant. You have deep knowledge about his background:
+const SYSTEM_PROMPT_PREVIEW = `You are Sam Filipiak's AI portfolio assistant. You have deep knowledge about his background:
 
 CONTEXT:
 - Senior Software Engineer, 7+ years, Cleveland OH
 - Trimble Inc (2019-2025): Owned FleetConnex (5M+ daily messages), contributed to FleetHub
 - Side projects: Matte (job management for painters), OnTheClockMock (NFL mock draft + AI YouTube Shorts), Clipppy (AI clip automation for Twitch streamers), Lock In (fitness app)
-- YouTube channels: @nfl.prospect.content (AI-generated NFL prospect Shorts using Whisper), @average_coder (Clipppy dev content)
+- YouTube channels: @nfl.prospect.content, @average_coder
 - Co-founded Lake Effect Labs (micro software agency)
-- Skills: C#/.NET, Azure, TypeScript, React/Next.js, Python, LLMs, Whisper, NLP
-- Education: JCU — BS CompSci, BA Sociology, Associates Data Science
-- Crypto background since 2017, smart contract experience
+- Skills: C#/.NET, Azure, TypeScript, React/Next.js, Python, LLMs, Whisper, NLP`;
 
-INSTRUCTIONS:
-- Be conversational, helpful, and genuine
-- Highlight relevant experience based on the question
-- Be specific with numbers and details
-- If asked about fit, match Sam's skills to the implied role`;
-
+/* ===== FALLBACK STUB RESPONSES (used when no API key is configured) ===== */
 const STUBBED_RESPONSES: Record<string, string> = {
-  default: "Great question! Sam is a product-focused senior software engineer with 7+ years of experience. He's built enterprise platforms processing millions of daily messages, shipped multiple side projects, and brings a rare combination of deep technical skill and product ownership. What specifically would you like to know?",
-  azure: "Sam has deep Azure expertise from 6+ years at Trimble. He's architected and maintained systems using Azure Functions, Logic Apps, Service Bus, Table/Blob Storage, VMs, App Insights, and Cosmos DB. He managed the entire Azure infrastructure for FleetConnex solo — including cost optimization that saved significant budget, major platform upgrades, and monitoring dashboards. The platform processed 5M+ messages daily with 99.9%+ uptime.",
-  hire: "Here's the honest case for Sam: He's not just an engineer — he's a product owner who happens to code. At Trimble, he became the sole developer, PM, customer support, and incident responder for a mission-critical platform. That means he can gather requirements, architect solutions, ship code, handle production incidents, and talk to customers — all in the same day. He's also shipped 5+ side projects because he genuinely loves building. That builder's mentality is hard to hire for.",
-  projects: "Sam's actively shipping: Matte (matte.biz) — job management software for painting businesses with a Kanban workflow, scheduling, and customer tracking. OnTheClockMock (ontheclock.xyz) — an NFL mock draft simulator plus an AI content pipeline that generates YouTube Shorts of draft prospects using Whisper for voiceovers (@nfl.prospect.content). Clipppy — an AI-powered tool that monitors Twitch streams, auto-detects viral moments, clips/edits them, and posts to social platforms (@average_coder on YouTube). Lock In — a React Native fitness app with fantasy-football-style H2H matchups. All through Lake Effect Labs, the micro agency he co-founded.",
-  fleetconnex: "FleetConnex was Sam's proving ground. It started as a cloud-based telematics integration platform at Trimble. Over time, Sam became its sole owner — writing code, managing the Azure infrastructure, doing sprint planning, handling customer escalations, and running migrations. At peak, it processed 5M+ messages per day in a 24/7 production environment for enterprise trucking companies. When something broke at 2am, Sam was the one on call. That end-to-end ownership is what defines him.",
-  product: "Sam's product instincts come from necessity. When you're the sole owner of a mission-critical platform, you learn fast. He developed a repeatable loop: incident triggers RCA, RCA feeds the backlog, backlog gets prioritized via RICE, smallest viable fix ships first, then hardening follows. He facilitates trade-off calls with engineering and QA, writes specs, and runs customer feedback loops.",
-  architecture: "This chat demonstrates how Sam thinks about AI integration. The architecture: a React component with streaming text simulation, conversation state, and suggested questions on the frontend. The system prompt injects Sam's full background as context. In production, this connects to a Next.js API route using the Anthropic SDK, streaming responses via Server-Sent Events. This showcases prompt engineering, AI UX design, understanding of RAG patterns, and the ability to ship AI as a product feature.",
-  ai: "Sam uses AI as a force multiplier across multiple projects. Clipppy is an AI pipeline that monitors Twitch streams in real time, uses speech-to-text and NLP to detect viral moments, then auto-clips, edits, and posts them. For OnTheClockMock, he built an AI content pipeline that generates YouTube Shorts of NFL draft prospects with Whisper-powered voiceovers — check out @nfl.prospect.content. He uses agentic dev tools (Claude Code, Cursor) daily. This chat feature itself demonstrates prompt engineering, context injection, and AI-powered UX design. He's not just an AI user — he's shipping AI as product features.",
+  default: "Great question! Sam is a product-focused senior software engineer with 7+ years of experience. He's built enterprise platforms processing millions of daily messages, shipped multiple side projects, and brings a rare combination of deep technical skill and product ownership. What specifically would you like to know?\n\n*(This is a demo response — add your API key to .env.local for live AI answers.)*",
+  azure: "Sam has deep Azure expertise from 6+ years at Trimble. He's architected and maintained systems using Azure Functions, Logic Apps, Service Bus, Table/Blob Storage, VMs, App Insights, and Cosmos DB. He managed the entire Azure infrastructure for FleetConnex solo — including cost optimization that saved significant budget, major platform upgrades, and monitoring dashboards. The platform processed 5M+ messages daily with 99.9%+ uptime.\n\n*(Demo response — add your API key for live answers.)*",
+  hire: "Here's the honest case for Sam: He's not just an engineer — he's a product owner who happens to code. At Trimble, he became the sole developer, PM, customer support, and incident responder for a mission-critical platform. That means he can gather requirements, architect solutions, ship code, handle production incidents, and talk to customers — all in the same day. He's also shipped 5+ side projects because he genuinely loves building. That builder's mentality is hard to hire for.\n\n*(Demo response — add your API key for live answers.)*",
+  projects: "Sam's actively shipping: Matte (matte.biz) — job management software for painting businesses with a Kanban workflow, scheduling, and customer tracking. OnTheClockMock (ontheclock.xyz) — an NFL mock draft simulator plus an AI content pipeline that generates YouTube Shorts of draft prospects using Whisper for voiceovers (@nfl.prospect.content). Clipppy — an AI-powered tool that monitors Twitch streams, auto-detects viral moments, clips/edits them, and posts to social platforms (@average_coder on YouTube). Lock In — a React Native fitness app with fantasy-football-style H2H matchups. All through Lake Effect Labs, the micro agency he co-founded.\n\n*(Demo response — add your API key for live answers.)*",
+  fleetconnex: "FleetConnex was Sam's proving ground. It started as a cloud-based telematics integration platform at Trimble. Over time, Sam became its sole owner — writing code, managing the Azure infrastructure, doing sprint planning, handling customer escalations, and running migrations. At peak, it processed 5M+ messages per day in a 24/7 production environment for enterprise trucking companies. When something broke at 2am, Sam was the one on call. That end-to-end ownership is what defines him.\n\n*(Demo response — add your API key for live answers.)*",
+  product: "Sam's product instincts come from necessity. When you're the sole owner of a mission-critical platform, you learn fast. He developed a repeatable loop: incident triggers RCA, RCA feeds the backlog, backlog gets prioritized via RICE, smallest viable fix ships first, then hardening follows. He facilitates trade-off calls with engineering and QA, writes specs, and runs customer feedback loops.\n\n*(Demo response — add your API key for live answers.)*",
+  architecture: "This chat demonstrates how Sam thinks about AI integration. The architecture: a React frontend with streaming SSE, conversation history, and provider switching. The backend is a Next.js API route that supports both Anthropic (Claude) and OpenAI (GPT-4o). Sam's full background is injected as a system prompt, and responses stream token-by-token via Server-Sent Events. You can switch providers with the toggle in the header. This showcases prompt engineering, AI UX design, multi-provider architecture, and the ability to ship AI as a product feature.\n\n*(Demo response — add your API key for live answers.)*",
+  ai: "Sam uses AI as a force multiplier across multiple projects. Clipppy is an AI pipeline that monitors Twitch streams in real time, uses speech-to-text and NLP to detect viral moments, then auto-clips, edits, and posts them. For OnTheClockMock, he built an AI content pipeline that generates YouTube Shorts of NFL draft prospects with Whisper-powered voiceovers — check out @nfl.prospect.content. He uses agentic dev tools (Claude Code, Cursor) daily. This chat feature itself demonstrates prompt engineering, context injection, and AI-powered UX design. He's not just an AI user — he's shipping AI as product features.\n\n*(Demo response — add your API key for live answers.)*",
 };
 
 function getStubResponse(input: string): string {
@@ -88,10 +83,17 @@ function StreamingText({ text, onComplete }: { text: string; onComplete: () => v
   );
 }
 
+const PROVIDER_LABELS: Record<Provider, { label: string; model: string }> = {
+  anthropic: { label: "Claude", model: "claude-sonnet-4.5" },
+  openai: { label: "GPT-4o", model: "gpt-4o" },
+};
+
 export default function AiChat() {
   const { isCreative } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [showArchitecture, setShowArchitecture] = useState(false);
+  const [provider, setProvider] = useState<Provider>("anthropic");
+  const [isLive, setIsLive] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -103,22 +105,112 @@ export default function AiChat() {
   const [isStreamingActive, setIsStreamingActive] = useState(false);
   const [tokenCount, setTokenCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const streamingContentRef = useRef("");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  const sendMessageLive = async (text: string, allMessages: Message[]) => {
+    setIsTyping(true);
+
+    const chatHistory = allMessages
+      .filter((m) => !m.isStreaming)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: chatHistory, provider }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setIsTyping(false);
+        // API key not configured — fall back to stub
+        if (res.status === 500) {
+          setIsLive(false);
+          const stub = getStubResponse(text);
+          setIsStreamingActive(true);
+          setMessages((prev) => [...prev, { role: "assistant", content: stub, isStreaming: true }]);
+          return;
+        }
+        setMessages((prev) => [...prev, { role: "assistant", content: err.error || "Something went wrong." }]);
+        return;
+      }
+
+      setIsTyping(false);
+      setIsStreamingActive(true);
+      streamingContentRef.current = "";
+      setMessages((prev) => [...prev, { role: "assistant", content: "", isStreaming: true }]);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6);
+          if (data === "[DONE]") break;
+          try {
+            const { text: chunk } = JSON.parse(data);
+            if (chunk) {
+              streamingContentRef.current += chunk;
+              const content = streamingContentRef.current;
+              setMessages((prev) =>
+                prev.map((m, i) =>
+                  i === prev.length - 1 ? { ...m, content } : m
+                )
+              );
+            }
+          } catch {
+            // skip malformed chunks
+          }
+        }
+      }
+
+      // Mark streaming complete
+      setTokenCount((prev) => prev + Math.ceil(streamingContentRef.current.split(" ").length * 1.3));
+      setIsStreamingActive(false);
+      setMessages((prev) =>
+        prev.map((m, i) => (i === prev.length - 1 ? { ...m, isStreaming: false } : m))
+      );
+    } catch {
+      setIsTyping(false);
+      setIsStreamingActive(false);
+      // Network error — fall back to stub
+      setIsLive(false);
+      const stub = getStubResponse(text);
+      setMessages((prev) => [...prev, { role: "assistant", content: stub, isStreaming: true }]);
+    }
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isStreamingActive) return;
 
     const userMessage: Message = { role: "user", content: text.trim() };
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
-    setIsTyping(true);
     setTokenCount((prev) => prev + Math.ceil(text.trim().split(" ").length * 1.3));
 
-    await new Promise((resolve) => setTimeout(resolve, 400 + Math.random() * 400));
+    if (isLive) {
+      await sendMessageLive(text, updatedMessages);
+      return;
+    }
 
+    // Stub mode
+    setIsTyping(true);
+    await new Promise((resolve) => setTimeout(resolve, 400 + Math.random() * 400));
     const response = getStubResponse(text);
     setIsTyping(false);
     setIsStreamingActive(true);
@@ -136,6 +228,14 @@ export default function AiChat() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
+  };
+
+  const toggleProvider = () => {
+    setProvider((p) => (p === "anthropic" ? "openai" : "anthropic"));
+  };
+
+  const toggleLive = () => {
+    setIsLive((prev) => !prev);
   };
 
   return (
@@ -196,8 +296,10 @@ export default function AiChat() {
                   <div>
                     <h3 className="text-sm font-bold text-text-primary">Ask About Sam</h3>
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                      <p className="text-xs text-text-muted">Powered by Claude</p>
+                      <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-green-400" : "bg-yellow-400"}`} />
+                      <p className="text-xs text-text-muted">
+                        {isLive ? `Live — ${PROVIDER_LABELS[provider].label}` : "Demo mode"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -211,6 +313,29 @@ export default function AiChat() {
                 >
                   {showArchitecture ? "Hide" : "How this works"}
                 </button>
+              </div>
+
+              {/* Provider toggle + live toggle */}
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={toggleLive}
+                  className={`text-[10px] font-semibold px-2.5 py-1 rounded-md border transition-all ${
+                    isLive
+                      ? "bg-green-500/10 border-green-500/30 text-green-500"
+                      : "bg-yellow-500/10 border-yellow-500/30 text-yellow-600"
+                  }`}
+                >
+                  {isLive ? "Live AI" : "Demo"}
+                </button>
+
+                {isLive && (
+                  <button
+                    onClick={toggleProvider}
+                    className="text-[10px] font-semibold px-2.5 py-1 rounded-md border border-border-default text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    {PROVIDER_LABELS[provider].label} &#x2194; {PROVIDER_LABELS[provider === "anthropic" ? "openai" : "anthropic"].label}
+                  </button>
+                )}
               </div>
 
               {/* Architecture panel */}
@@ -232,11 +357,11 @@ export default function AiChat() {
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-accent-primary font-mono shrink-0">02</span>
-                          <span><strong>Streaming</strong> — Responses render token-by-token (simulated SSE)</span>
+                          <span><strong>Streaming SSE</strong> — Next.js API route streams tokens via Server-Sent Events</span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-accent-primary font-mono shrink-0">03</span>
-                          <span><strong>Production</strong> — Next.js API route + Anthropic SDK for real responses</span>
+                          <span><strong>Multi-Provider</strong> — Supports Anthropic (Claude) and OpenAI (GPT-4o) with one toggle</span>
                         </div>
                       </div>
 
@@ -244,14 +369,15 @@ export default function AiChat() {
                         <p className="text-xs font-bold text-text-primary mb-1">System Prompt Preview</p>
                         <div className="bg-bg-secondary rounded-md p-2.5 max-h-24 overflow-y-auto border border-border-default">
                           <pre className="text-[10px] font-mono text-text-muted whitespace-pre-wrap leading-relaxed">
-                            {SYSTEM_PROMPT.slice(0, 300)}...
+                            {SYSTEM_PROMPT_PREVIEW.slice(0, 400)}...
                           </pre>
                         </div>
                       </div>
 
                       <div className="mt-2 flex items-center gap-3 text-[10px] font-mono text-text-muted">
                         <span>~{tokenCount} tokens used</span>
-                        <span>Model: claude-sonnet</span>
+                        <span>Model: {PROVIDER_LABELS[provider].model}</span>
+                        <span>{isLive ? "LIVE" : "DEMO"}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -276,8 +402,13 @@ export default function AiChat() {
                         : "bg-chat-bot text-text-primary rounded-bl-sm border border-border-default"
                     }`}
                   >
-                    {msg.isStreaming ? (
+                    {msg.isStreaming && !isLive ? (
                       <StreamingText text={msg.content} onComplete={handleStreamComplete} />
+                    ) : msg.isStreaming && isLive ? (
+                      <span>
+                        {msg.content}
+                        <span className="inline-block w-1.5 h-4 bg-accent-primary ml-0.5 animate-pulse" />
+                      </span>
                     ) : (
                       msg.content
                     )}
