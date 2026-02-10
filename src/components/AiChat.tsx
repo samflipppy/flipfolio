@@ -93,7 +93,7 @@ export default function AiChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [showArchitecture, setShowArchitecture] = useState(false);
   const [provider, setProvider] = useState<Provider>("anthropic");
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
