@@ -13,15 +13,16 @@ interface StickyNote {
 }
 
 const initialNotes: StickyNote[] = [
-  { id: "1", content: "What if fitness apps had fantasy sports scoring?", color: "sticky-yellow", rotation: -3 },
+  { id: "1", content: "The best products are the ones you build because nothing else exists for your problem.", color: "sticky-yellow", rotation: -3 },
   { id: "2", content: "Decentralized telecom is the next frontier. World Mobile is onto something.", color: "sticky-blue", rotation: 2 },
-  { id: "3", content: "Build things you'd actually use. That's the whole philosophy.", color: "sticky-pink", rotation: -1 },
-  { id: "4", content: "AI-assisted development isn't replacing engineers — it's making us 10x faster at the boring parts.", color: "sticky-green", rotation: 4 },
-  { id: "5", content: "The best PM I've ever worked with was the customer support inbox.", color: "sticky-purple", rotation: -2 },
-  { id: "6", content: "Side project idea: auto-crop & caption vertical clips for streamers", color: "sticky-yellow", rotation: 3 },
-  { id: "7", content: "Smart vending machines in hospitals. Cashless, reliable, always stocked.", color: "sticky-blue", rotation: -4 },
+  { id: "3", content: "Every time I use a bad SaaS tool I think about how I'd rebuild it from scratch.", color: "sticky-pink", rotation: -1 },
+  { id: "4", content: "AI isn't replacing engineers — it's giving the ones who ship fast an unfair advantage.", color: "sticky-green", rotation: 4 },
+  { id: "5", content: "The best PM training is answering customer support tickets for a year straight.", color: "sticky-purple", rotation: -2 },
+  { id: "6", content: "If your side project doesn't make you stay up too late at least once, you picked the wrong idea.", color: "sticky-yellow", rotation: 3 },
+  { id: "7", content: "Vertical SaaS for trades is so underbuilt. Painters, plumbers, roofers — they all deserve better tools.", color: "sticky-blue", rotation: -4 },
   { id: "8", content: "Every enterprise product is just a series of migrations held together by hope and documentation.", color: "sticky-pink", rotation: 1 },
-  { id: "9", content: "Cleveland Browns content + merch + tailgate buses = The Brown Streak", color: "sticky-green", rotation: -3 },
+  { id: "9", content: "Cleveland will always be home. The lake, the food, the people who don't take themselves too seriously.", color: "sticky-green", rotation: -3 },
+  { id: "10", content: "🦞🦞🦞", color: "sticky-purple", rotation: 2 },
 ];
 
 function DraggableNote({ note }: { note: StickyNote }) {
@@ -60,7 +61,7 @@ export default function VisionBoard() {
     return (
       <SectionWrapper id="vision" className="py-12 md:py-16">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-text-primary mb-4">Interests & Ideas</h2>
+          <h2 className="text-2xl font-bold text-text-primary mb-4">Thoughts</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {initialNotes.map((note) => (
               <div key={note.id} className="flex items-start gap-3 py-2">
@@ -86,7 +87,7 @@ export default function VisionBoard() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4" style={{ letterSpacing: "var(--letter-spacing-heading)" }}>
-            <span className="gradient-text">Vision Board</span>
+            <span className="gradient-text">Thoughts</span>
           </h2>
           <p className="text-text-secondary text-lg max-w-xl mx-auto">
             My brain on sticky notes. Drag them around. This is how I think.
